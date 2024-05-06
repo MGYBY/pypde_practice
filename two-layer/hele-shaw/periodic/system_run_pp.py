@@ -88,7 +88,7 @@ def S(Q):
     h = Q[0]
     q = Q[1]
 
-    S_[1] = 1.0/(1.0+rho_r_val)*((1.0-rho_r_val)*(1.0/(fr_val**2.0)) + sore_reci(fr_val, hr_val, rho_r_val, mu_r_val)*(q/h*F1_func(h, hr_val, rho_r_val, mu_r_val)-mu_r_val*((u_su(hr_val, rho_r_val, mu_r_val)*(1.0+hr_val)-q)/(1.0+hr_val-h)*F2_func(h, hr_val, rho_r_val, mu_r_val))))
+    S_[1] = 1.0/(1.0+rho_r_val)*((1.0-rho_r_val*hr_val)*(1.0/(fr_val**2.0)) + sore_reci(fr_val, hr_val, rho_r_val, mu_r_val)*(q/h*F1_func(h, hr_val, rho_r_val, mu_r_val)-mu_r_val*((u_su(hr_val, rho_r_val, mu_r_val)*(1.0+hr_val)-q)/(1.0+hr_val-h)*F2_func(h, hr_val, rho_r_val, mu_r_val))))
 
     return S_
 
