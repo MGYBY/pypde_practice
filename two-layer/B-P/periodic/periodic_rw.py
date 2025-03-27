@@ -17,10 +17,10 @@ def u2_su(hr, ρr, μr):
     return ((3.0*μr+2.0*hr*ρr*(hr+3.0*μr))/(μr*(2.0+3.0*hr*ρr)))
 
 # problem-related parameters
-fr_v = 0.650
-hr_v = 0.50
-μr_v = 0.33333
-ρr_v = 0.98681
+fr_v = 0.80
+hr_v = 1.0
+μr_v = 1.0
+ρr_v = 1.0
 L_x = 5.0
 dist_amp = 0.1
 
@@ -33,10 +33,10 @@ dist_amp = 0.020
 tf = 12.0
 '''
 
-nx = 256
+nx = 128
 L = [L_x]
-tf = 32.0
-n_output = 32
+tf = 30.0
+n_output = 30
 
 delta_x = L_x/nx
 nd1 = 1.0
@@ -112,4 +112,75 @@ for i in range(0, frames):
     file_name = 'outXYZ_%s' % format_string_time
     with open(file_name, 'w') as f:
         writer = csv.writer(f, delimiter='\t')
-        writer.writerows(zip(np.transpose(x_array),np.transpose(out[i,:,0]),np.transpose(out[i,:,1]), (np.transpose(out[i,:,0])+np.transpose(out[i,:,1]))))
+        writer.writerows(zip(np.transpose(x_array),np.transpose(out[i,:,0]),np.transpose(out[i,:,1]), (np.transpose(out[i,:,0])+np.transpose(out[i,:,1])),np.transpose(out[i,:,2]),np.transpose(out[i,:,3])))
+print("Finished field output. Beginning velocity-field reconstruction ... ...")
+
+num_layers = 25 # number of sigma-layers in each layer
+for i in range(0, frames):
+    print('Reconstructing'+': '+str(i)+'th output')
+    t = 1.0*i
+    format_string_time = f"{t:.1f}"
+    file_name = 'reconstructed_%s' % format_string_time
+    with open(file_name, 'w') as f:
+        writer = csv.writer(f, delimiter='\t')
+        for cell in range(0,arr_size):
+            x = L_x/(nx*2.0)+cell*(L_x/nx)
+            hl = out[i,cell,0]
+            hu = out[i,cell,1]
+            ul = out[i,cell,2]
+            uu = out[i,cell,3]
+            c11 = (-6.0*hu*ul+9.0*hl*(-2.0*ul+uu)*μr_v)/(hl**2.0*(4.0*hu+3.0*hl*μr_v))
+            c12 = (12.0*hu*ul+18.0*hl*ul*μr_v-6.0*hl*uu*μr_v)/(hl*(4.0*hu+3.0*hl*μr_v))
+            c21 = (9.0*ul-6.0*uu)/(hu*(4.0*hu+3.0*hl*μr_v))
+            c22 = (6.0*(hl+hu)*(2.0*uu-3.0*ul))/(hu*(4.0*hu+3.0*hl*μr_v))
+            c23 = (3.0*(2.0*hu**2.0*ul+hl**2.0*(3.0*ul-2.0*uu)+hl*hu*(6.0*ul+uu*(-4.0+μr_v))))/(hu*(4.0*hu+3.0*hl*μr_v))
+            # accomodate the boundary conditions at the wall
+            output_tot = np.zeros((1, 3))
+            output_tot[0,0] = x
+            np.savetxt(f, output_tot, fmt='%g')
+            # begin with lower layer
+            for layer in range(0,num_layers):
+                output_tot = np.zeros((1, 3))
+                z = hl/(num_layers*2.0)+layer*(hl/num_layers)
+
+                u = c11*z*z+c12*z
+                output_tot[0,0] = x
+                output_tot[0,1] = z
+                output_tot[0,2] = u
+                np.savetxt(f, output_tot, fmt='%g')
+                if cell == 0:
+                    output_tot[0,0] = 0.0
+                    np.savetxt(f, output_tot, fmt='%g')
+                if cell == (arr_size-1):
+                    output_tot[0,0] = L_x
+                    np.savetxt(f, output_tot, fmt='%g')
+            # the upper layer
+            for layer in range(0,num_layers):
+                output_tot = np.zeros((1, 3))
+                z = hl+hu/(num_layers*2.0)+layer*(hu/num_layers)
+                u = c21*z*z+c22*z+c23
+                output_tot[0,0] = x
+                output_tot[0,1] = z
+                output_tot[0,2] = u
+                np.savetxt(f, output_tot, fmt='%g')
+                if cell == 0:
+                    output_tot[0,0] = 0.0
+                    np.savetxt(f, output_tot, fmt='%g')
+                if cell == (arr_size-1):
+                    output_tot[0,0] = L_x
+                    np.savetxt(f, output_tot, fmt='%g')
+            # make sure the contour hits the free-surface
+            z = hl+hu
+            u = c21*z*z+c22*z+c23
+            output_tot[0,0] = x
+            output_tot[0,1] = z
+            output_tot[0,2] = u
+            np.savetxt(f, output_tot, fmt='%g')
+            if cell == 0:
+                    output_tot[0,0] = 0.0
+                    np.savetxt(f, output_tot, fmt='%g')
+            if cell == (arr_size-1):
+                output_tot[0,0] = L_x
+                np.savetxt(f, output_tot, fmt='%g')
+
+
