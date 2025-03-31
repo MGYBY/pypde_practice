@@ -11,8 +11,8 @@ import csv
 import numpy as np
 # initial conditions
 def disturbed_depth(x, normal_depth, wl):
-    if (x>=(disp_wl/2.0) and x<=disp_wl):
-        return (normal_depth*(1.0+dist_amp*np.sin(np.pi*2.0*x/wl)))
+    if (x>=(wl/2.0) and x<=wl):
+        return (normal_depth*(1.0+dist_amp*np.sin(np.pi*2.0*(x-(wl/2.0))/wl)))
     else:
         return (normal_depth)
 
@@ -20,11 +20,11 @@ def u2_su(hr, ρr, μr):
     return ((3.0*μr+2.0*hr*ρr*(hr+3.0*μr))/(μr*(2.0+3.0*hr*ρr)))
 
 # problem-related parameters
-fr_v = 0.60
-hr_v = 0.50
-μr_v = 0.33333
-ρr_v = 0.98681
-L_x = 75.0
+fr_v = 1.0
+hr_v = 1.0
+μr_v = 1.0
+ρr_v = 1.0
+L_x = 200.0
 dist_amp = 0.20
 disp_wl = 2.0
 
@@ -37,10 +37,10 @@ dist_amp = 0.020
 tf = 12.0
 '''
 
-nx = 2100
+nx = 2400
 L = [L_x]
-tf = 24.0
-n_output = 48
+tf = 45.0
+n_output = 45
 
 delta_x = L_x/nx
 nd1 = 1.0
@@ -52,10 +52,10 @@ Q0 = zeros([nx, 4])
 
 for i in range(nx):
     x_coord = (i-0.50)*delta_x
-    Q0[i, 0] = disturbed_depth(x_coord, nd1, L_x)
-    Q0[i, 1] = disturbed_depth(x_coord, nd2, L_x)
-    Q0[i, 2] = nv1*((disturbed_depth(x_coord, nd1, L_x)/nd1)**0.50)*Q0[i, 0]
-    Q0[i, 3] = nv2*((disturbed_depth(x_coord, nd2, L_x)/nd2)**0.50)*Q0[i, 1]
+    Q0[i, 0] = disturbed_depth(x_coord, nd1, disp_wl)
+    Q0[i, 1] = disturbed_depth(x_coord, nd2, disp_wl)
+    Q0[i, 2] = nv1*((disturbed_depth(x_coord, nd1, disp_wl)/nd1)**0.50)*Q0[i, 0]
+    Q0[i, 3] = nv2*((disturbed_depth(x_coord, nd2, disp_wl)/nd2)**0.50)*Q0[i, 1]
 
 def F(Q):
     F_ = zeros(4)
@@ -67,8 +67,8 @@ def F(Q):
 
     F_[0] = q1
     F_[1] = q2
-    F_[2] = (96*h2**4*q1**2 + 6*h1*h2**2*q1*(21*h2*q1 + 2*h1*q2)*μr_v + 3*h1**2*(18*h2**2*q1**2 - 3*h1*h2*q1*q2 + 2*h1**2*q2**2)*μr_v**2)/(5.*h1*h2**2*(4*h2 + 3*h1*μr_v)**2)
-    F_[3] = q2**2/h2 + (4*h2*(3*h2*q1 - 2*h1*q2)**2)/(5.*h1**2*(4*h2 + 3*h1*μr_v)**2)
+    F_[2] = (96*h2**4*q1**2 + 6*h1*h2**2*q1*(21*h2*q1 + 2*h1*q2)*μr_v + 3*h1**2*(18*h2**2*q1**2 - 3*h1*h2*q1*q2 + 2*h1**2*q2**2)*μr_v**2)/(5.*h1*h2**2*(4*h2 + 3*h1*μr_v)**2) + (0.5/(fr_v**2.0))*h1**2.0
+    F_[3] = q2**2/h2 + (4*h2*(3*h2*q1 - 2*h1*q2)**2)/(5.*h1**2*(4*h2 + 3*h1*μr_v)**2) + (0.5/(fr_v**2.0))*h2**2.0
 
     return F_
 
@@ -93,15 +93,15 @@ def B_dl(Q):
     q1 = Q[2]
     q2 = Q[3]
 
-    ret[2, 0] = (1.0/(fr_v*fr_v))*h1
+    #ret[2, 0] = 0
     ret[2, 1] = ρr_v*(1.0/(fr_v*fr_v))*h1
     ret[3, 0] = (1.0/(fr_v*fr_v))*h2
-    ret[3, 1] = (1.0/(fr_v*fr_v))*h2
+    #ret[3, 1] = 0
 
     return ret
 
 
-out = pde_solver(Q0, tf, L, F=F, S=S, B=B_dl, boundaryTypes='periodic', cfl=0.750, order=2, stiff=False, flux='rusanov', ndt=n_output, nThreads=6)
+out = pde_solver(Q0, tf, L, F=F, S=S, B=B_dl, boundaryTypes='periodic', cfl=0.750, order=2, stiff=False, flux='rusanov', ndt=n_output, nThreads=4)
 
 
 # text files output
@@ -116,4 +116,73 @@ for i in range(0, frames):
     file_name = 'outXYZ_%s' % format_string_time
     with open(file_name, 'w') as f:
         writer = csv.writer(f, delimiter='\t')
-        writer.writerows(zip(np.transpose(x_array),np.transpose(out[i,:,0]),np.transpose(out[i,:,1]), (np.transpose(out[i,:,0])+np.transpose(out[i,:,1]))))
+        writer.writerows(zip(np.transpose(x_array),np.transpose(out[i,:,0]),np.transpose(out[i,:,1]), (np.transpose(out[i,:,0])+np.transpose(out[i,:,1])),np.transpose(out[i,:,2]),np.transpose(out[i,:,3])))
+print("Finished field output. Beginning velocity-field reconstruction ... ...")
+
+num_layers = 25 # number of sigma-layers in each layer
+for i in range(0, frames):
+    print('Reconstructing'+': '+str(i)+'th output')
+    t = 1.0*i
+    format_string_time = f"{t:.1f}"
+    file_name = 'reconstructed_%s' % format_string_time
+    with open(file_name, 'w') as f:
+        writer = csv.writer(f, delimiter='\t')
+        for cell in range(0,arr_size):
+            x = L_x/(nx*2.0)+cell*(L_x/nx)
+            hl = out[i,cell,0]
+            hu = out[i,cell,1]
+            ul = out[i,cell,2]
+            uu = out[i,cell,3]
+            c11 = (-6.0*hu*ul+9.0*hl*(-2.0*ul+uu)*μr_v)/(hl**2.0*(4.0*hu+3.0*hl*μr_v))
+            c12 = (12.0*hu*ul+18.0*hl*ul*μr_v-6.0*hl*uu*μr_v)/(hl*(4.0*hu+3.0*hl*μr_v))
+            c21 = (9.0*ul-6.0*uu)/(hu*(4.0*hu+3.0*hl*μr_v))
+            c22 = (6.0*(hl+hu)*(2.0*uu-3.0*ul))/(hu*(4.0*hu+3.0*hl*μr_v))
+            c23 = (3.0*(2.0*hu**2.0*ul+hl**2.0*(3.0*ul-2.0*uu)+hl*hu*(6.0*ul+uu*(-4.0+μr_v))))/(hu*(4.0*hu+3.0*hl*μr_v))
+            # accomodate the boundary conditions at the wall
+            output_tot = np.zeros((1, 3))
+            output_tot[0,0] = x
+            np.savetxt(f, output_tot, fmt='%g')
+            # begin with lower layer
+            for layer in range(0,num_layers):
+                output_tot = np.zeros((1, 3))
+                z = hl/(num_layers*2.0)+layer*(hl/num_layers)
+
+                u = c11*z*z+c12*z
+                output_tot[0,0] = x
+                output_tot[0,1] = z
+                output_tot[0,2] = u
+                np.savetxt(f, output_tot, fmt='%g')
+                if cell == 0:
+                    output_tot[0,0] = 0.0
+                    np.savetxt(f, output_tot, fmt='%g')
+                if cell == (arr_size-1):
+                    output_tot[0,0] = L_x
+                    np.savetxt(f, output_tot, fmt='%g')
+            # the upper layer
+            for layer in range(0,num_layers):
+                output_tot = np.zeros((1, 3))
+                z = hl+hu/(num_layers*2.0)+layer*(hu/num_layers)
+                u = c21*z*z+c22*z+c23
+                output_tot[0,0] = x
+                output_tot[0,1] = z
+                output_tot[0,2] = u
+                np.savetxt(f, output_tot, fmt='%g')
+                if cell == 0:
+                    output_tot[0,0] = 0.0
+                    np.savetxt(f, output_tot, fmt='%g')
+                if cell == (arr_size-1):
+                    output_tot[0,0] = L_x
+                    np.savetxt(f, output_tot, fmt='%g')
+            # make sure the contour hits the free-surface
+            z = hl+hu
+            u = c21*z*z+c22*z+c23
+            output_tot[0,0] = x
+            output_tot[0,1] = z
+            output_tot[0,2] = u
+            np.savetxt(f, output_tot, fmt='%g')
+            if cell == 0:
+                    output_tot[0,0] = 0.0
+                    np.savetxt(f, output_tot, fmt='%g')
+            if cell == (arr_size-1):
+                output_tot[0,0] = L_x
+                np.savetxt(f, output_tot, fmt='%g')
