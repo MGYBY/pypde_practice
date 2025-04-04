@@ -1,6 +1,6 @@
 from numba import njit
 from numpy import array, zeros, power
-from pypde import pde_solver
+from pypde import pde_solver, weno_solver
 
 import matplotlib.pyplot as plt
 from matplotlib import animation
@@ -11,7 +11,7 @@ import csv
 import numpy as np
 # initial conditions
 def disturbed_depth(x, y, normal_depth, wl_x, wl_y):
-    return (normal_depth*(1.0+dist_amp_x*np.sin(np.pi*2.0*x/wl_x)+dist_amp_y*np.sin(np.pi*2.0*x/wl_y)))
+    return (normal_depth*(1.0+dist_amp_x*np.sin(np.pi*2.0*x/wl_x)+dist_amp_y*np.sin(np.pi*2.0*y/wl_y)))
 
 def u2_su(hr, ρr, μr):
     return ((3.0*μr+2.0*hr*ρr*(hr+3.0*μr))/(μr*(2.0+3.0*hr*ρr)))
@@ -49,8 +49,15 @@ nd1 = 1.0
 nd2 = nd1*hr_v
 nv1 = 1.0
 nv2 = u2_su(hr_v, ρr_v, μr_v)
+'''
+must need additional variables to avoid
+"erminate called after throwing an instance of 'std::runtime_error'
+  what():  UpperHessenbergEigen: eigen decomposition failed
+" errors (why?)
+'''
+num_var = 11
 
-Q0 = zeros([nx, ny, 6])
+Q0 = zeros([nx, ny, num_var])
 
 for i in range(nx):
     for j in range(ny):
@@ -59,13 +66,15 @@ for i in range(nx):
         Q0[i, j, 0] = disturbed_depth(x_coord, y_coord, nd1, dist_wl_x, dist_wl_y)
         Q0[i, j, 1] = disturbed_depth(x_coord, y_coord, nd2, dist_wl_x, dist_wl_y)
         # constant-Fr setups
-        Q0[i, j, 2] = nv1*(Q0[i, 0]/(nd1))**0.50
-        Q0[i, j, 3] = nv2*(Q0[i, 1]/(nd2))**0.50
+        #Q0[i, j, 2] = nv1*(Q0[i, j, 0]/(nd1))**0.50
+        #Q0[i, j, 3] = nv2*(Q0[i, j, 1]/(nd2))**0.50
+        Q0[i, j, 2] = nv1*(nd1)
+        Q0[i, j, 3] = nv2*(nd2)
         Q0[i, j, 4] = 0.0
         Q0[i, j, 5] = 0.0
 
 def F(Q,d):
-    F_ = zeros(6)
+    F_ = zeros(num_var)
 
     h1 = Q[0]
     h2 = Q[1]
@@ -103,7 +112,7 @@ def F(Q,d):
     return F_
 
 def S(Q):
-    S_ = zeros(6)
+    S_ = zeros(num_var)
 
     h1 = Q[0]
     h2 = Q[1]
@@ -120,7 +129,7 @@ def S(Q):
     return S_
 
 def B_dl(Q,d):
-    ret = zeros((6, 6))
+    ret = zeros((num_var, num_var))
 
     h1 = Q[0]
     h2 = Q[1]
@@ -141,7 +150,7 @@ def B_dl(Q,d):
     return ret
 
 
-out = pde_solver(Q0, tf, L, F=F, S=S, B=B_dl, boundaryTypes=['periodic', 'periodic'], cfl=0.60, order=2, stiff=False, flux='rusanov', ndt=n_output, nThreads=1)
+out = pde_solver(Q0, tf, L, F=F, S=S, B=B_dl, boundaryTypes='periodic', cfl=0.825, order=1, stiff=False, flux='rusanov', ndt=n_output, nThreads=6)
 
 # text files output
 # FIXME: here is written out of imagination, please double check later.
@@ -158,7 +167,7 @@ frames = un_shape[0]
         #writer = csv.writer(f, delimiter='\t')
         #writer.writerows(zip(np.transpose(x_array),np.transpose(out[i,:,0]),np.transpose(out[i,:,1]), (np.transpose(out[i,:,0])+np.transpose(out[i,:,1])),np.transpose(out[i,:,2]),np.transpose(out[i,:,3])))
 
-# FIXME: it may need a faster output routine
+# FIXME: it may need a faster output routine (using .reshape(-1) methods)
 output_tot = np.zeros((1, 8))
 for i in range(0, frames):
     print('Outputting'+': '+str(i)+'th 3D output')
