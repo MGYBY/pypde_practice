@@ -141,10 +141,10 @@ def B_dl(Q,d):
     if d==0:
         #ret[2, 0] = 0
         ret[2, 1] = ρr_v*(1.0/(fr_v*fr_v))*h1
-        ret[4, 0] = (1.0/(fr_v*fr_v))*h2
+        ret[3, 0] = (1.0/(fr_v*fr_v))*h2
         #ret[3, 1] = 0
     else:
-        ret[3, 1] = ρr_v*(1.0/(fr_v*fr_v))*h1
+        ret[4, 1] = ρr_v*(1.0/(fr_v*fr_v))*h1
         ret[5, 0] = (1.0/(fr_v*fr_v))*h2
 
     return ret
