@@ -57,6 +57,24 @@ for i in range(nx):
     Q0[i, 2] = nv1*((disturbed_depth(x_coord, nd1, disp_wl)/nd1)**0.50)*Q0[i, 0]
     Q0[i, 3] = nv2*((disturbed_depth(x_coord, nd2, disp_wl)/nd2)**0.50)*Q0[i, 1]
 
+# text files output
+## output IC
+file_name = "intial_condition"
+with open(file_name, 'w') as f:
+    i = 0
+    out = np.zeros([1,nx,4])
+    out[0,:,:] = Q0
+    output_tot = np.zeros([1,5])
+    for ix in range(0,nx):
+        x = L_x/(nx*2.0)+ix*(L_x/nx)
+        #output_tot = np.zeros((1, 8))
+        output_tot[0,0] = x
+        output_tot[0,1] = out[i,ix,0]
+        output_tot[0,2] = out[i,ix,1]
+        output_tot[0,3] = out[i,ix,2]
+        output_tot[0,4] = out[i,ix,3]
+        np.savetxt(f, output_tot, fmt='%g')
+
 def F(Q):
     F_ = zeros(4)
 
