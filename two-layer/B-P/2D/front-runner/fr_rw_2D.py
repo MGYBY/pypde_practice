@@ -75,6 +75,29 @@ for i in range(nx):
         Q0[i, j, 4] = 0.0
         Q0[i, j, 5] = 0.0
 
+# text files output
+## output IC
+file_name = "intial_condition"
+with open(file_name, 'w') as f:
+    i = 0
+    out = np.zeros([1, nx, ny,6])
+    out[0,:,:,:] = Q0
+    output_tot = np.zeros([1,8])
+    for ix in range(0,nx):
+        for iy in range(0,ny):
+            x = L_x/(nx*2.0)+ix*(L_x/nx)
+            y = L_y/(ny*2.0)+iy*(L_y/ny)
+            #output_tot = np.zeros((1, 8))
+            output_tot[0,0] = x
+            output_tot[0,1] = y
+            output_tot[0,2] = out[i,ix,iy,0]
+            output_tot[0,3] = out[i,ix,iy,1]
+            output_tot[0,4] = out[i,ix,iy,2]
+            output_tot[0,5] = out[i,ix,iy,3]
+            output_tot[0,6] = out[i,ix,iy,4]
+            output_tot[0,7] = out[i,ix,iy,5]
+            np.savetxt(f, output_tot, fmt='%g')
+
 def F(Q,d):
     F_ = zeros(num_var)
 
