@@ -138,7 +138,7 @@ for i in range(0, frames):
     file_name = 'outXYZ_%s' % format_string_time
     with open(file_name, 'w') as f:
         writer = csv.writer(f, delimiter='\t')
-        wwriter.writerows(zip(np.transpose(x_array),np.transpose(out[i,:,0]),np.transpose(out[i,:,1]), (np.transpose(out[i,:,0])+np.transpose(out[i,:,1])),np.transpose(out[i,:,2]),np.transpose(out[i,:,3]), bss(out[i,:,0], out[i,:,1], out[i,:,2]/out[i,:,0], out[i,:,3]/out[i,:,1], μr_v)))
+        writer.writerows(zip(np.transpose(x_array),np.transpose(out[i,:,0]),np.transpose(out[i,:,1]), (np.transpose(out[i,:,0])+np.transpose(out[i,:,1])),np.transpose(out[i,:,2]),np.transpose(out[i,:,3]), bss(out[i,:,0], out[i,:,1], out[i,:,2]/out[i,:,0], out[i,:,3]/out[i,:,1], μr_v)))
 print("Finished field output. Beginning velocity-field reconstruction ... ...")
 
 num_layers = 25 # number of sigma-layers in each layer
