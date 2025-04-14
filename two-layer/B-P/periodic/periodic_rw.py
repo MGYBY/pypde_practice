@@ -16,6 +16,9 @@ def disturbed_depth(x, normal_depth, wl):
 def u2_su(hr, ρr, μr):
     return ((3.0*μr+2.0*hr*ρr*(hr+3.0*μr))/(μr*(2.0+3.0*hr*ρr)))
 
+def bss(hl, hu, ul, uu, μr):
+    return ((12.0*hu*ul+18.0*hl*ul*μr-6.0*hl*uu*μr)/(4.0*hl*hu+3.0*hl**2.0*μr))
+
 # problem-related parameters
 fr_v = 0.80
 hr_v = 1.0
@@ -52,6 +55,7 @@ for i in range(nx):
     Q0[i, 1] = disturbed_depth(x_coord, nd2, L_x)
     Q0[i, 2] = nv1*Q0[i, 0]
     Q0[i, 3] = nv2*Q0[i, 1]
+
 # text files output
 ## output IC
 file_name = "intial_condition"
@@ -59,7 +63,7 @@ with open(file_name, 'w') as f:
     i = 0
     out = np.zeros([1,nx,4])
     out[0,:,:] = Q0
-    output_tot = np.zeros([1,5])
+    output_tot = np.zeros([1,6])
     for ix in range(0,nx):
         x = L_x/(nx*2.0)+ix*(L_x/nx)
         #output_tot = np.zeros((1, 8))
@@ -68,6 +72,7 @@ with open(file_name, 'w') as f:
         output_tot[0,2] = out[i,ix,1]
         output_tot[0,3] = out[i,ix,2]
         output_tot[0,4] = out[i,ix,3]
+        output_tot[0,5] = bss(nd1, nd2, nv1, nv2, μr_v)
         np.savetxt(f, output_tot, fmt='%g')
 
 def F(Q):
@@ -129,7 +134,7 @@ for i in range(0, frames):
     file_name = 'outXYZ_%s' % format_string_time
     with open(file_name, 'w') as f:
         writer = csv.writer(f, delimiter='\t')
-        writer.writerows(zip(np.transpose(x_array),np.transpose(out[i,:,0]),np.transpose(out[i,:,1]), (np.transpose(out[i,:,0])+np.transpose(out[i,:,1])),np.transpose(out[i,:,2]),np.transpose(out[i,:,3])))
+        wwriter.writerows(zip(np.transpose(x_array),np.transpose(out[i,:,0]),np.transpose(out[i,:,1]), (np.transpose(out[i,:,0])+np.transpose(out[i,:,1])),np.transpose(out[i,:,2]),np.transpose(out[i,:,3]), bss(out[i,:,0], out[i,:,1], out[i,:,2]/out[i,:,0], out[i,:,3]/out[i,:,1], μr_v)))
 print("Finished field output. Beginning velocity-field reconstruction ... ...")
 
 num_layers = 25 # number of sigma-layers in each layer
