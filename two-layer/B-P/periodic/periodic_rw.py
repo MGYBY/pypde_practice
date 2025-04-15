@@ -149,8 +149,8 @@ for i in range(0, frames):
             x = L_x/(nx*2.0)+cell*(L_x/nx)
             hl = out[i,cell,0]
             hu = out[i,cell,1]
-            ul = out[i,cell,2]
-            uu = out[i,cell,3]
+            ul = out[i,cell,2]/out[i,cell,0]
+            uu = out[i,cell,3]/out[i,cell,1]
             c11 = (-6.0*hu*ul+9.0*hl*(-2.0*ul+uu)*μr_v)/(hl**2.0*(4.0*hu+3.0*hl*μr_v))
             c12 = (12.0*hu*ul+18.0*hl*ul*μr_v-6.0*hl*uu*μr_v)/(hl*(4.0*hu+3.0*hl*μr_v))
             c21 = (9.0*ul-6.0*uu)/(hu*(4.0*hu+3.0*hl*μr_v))
